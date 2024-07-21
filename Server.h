@@ -29,7 +29,7 @@ class Server {
 		~Server(void);
 	private:
 		string		 host;
-    string     port;
+    	string     port;
 		SockAddrIn address;
 		int        sock;
 };

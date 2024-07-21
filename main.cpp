@@ -1,12 +1,11 @@
 #include "Server.h"
 #include "Stream.h"
 
-int main(int c, char **v) {
+void parser(Server & server) {
   Stream  data("Makefile");
   cout << reinterpret_cast<char *>(data.getStream());
-  (void)c;
-  (void)v;
-	return 0;
+  (void)server;
+  cout << "parser" << endl;
 }
 
 void server(int c, char **v) {
@@ -16,6 +15,13 @@ void server(int c, char **v) {
   }
   else {
     Server server(v[1]);
+    parser(server);
+    server.run();
   }
 
 }
+int main(int c, char **v) {
+  server(c, v);
+	return 0;
+}
+
