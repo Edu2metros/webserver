@@ -4,7 +4,7 @@ OBJ = obj
 SRCOBJ = $(SRC:%.cpp=${OBJ}/%.o)
 CREATE = mkdir -p $(1)
 REMOVE = rm -rf $(1)
-FLAG = -Wall -Wextra -Werror
+FLAG = -Wall -Wextra -Werror -g3
 CPP = c++
 
 all: $(NAME)

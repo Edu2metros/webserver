@@ -13,6 +13,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
+#include <vector>
+#include <string>
 
 typedef struct sockaddr_in SockAddrIn;
 using namespace std;
@@ -28,7 +30,7 @@ class Server {
 		Server & operator = (Server const &);
 		~Server(void);
 	private:
-		string		 host;
+		string	   host;
     	string     port;
 		SockAddrIn address;
 		int        sock;
