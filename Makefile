@@ -18,3 +18,9 @@ clean:
 fclean: clean
 	$(call REMOVE,${NAME})
 re: fclean all
+
+gdb: $(NAME)
+	xterm -hold -e "sleep 0.3; gdb --tui --args $(NAME) test/autoindex.conf" &
+	sleep 0.5
+	wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz
+
