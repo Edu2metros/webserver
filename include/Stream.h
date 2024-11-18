@@ -4,15 +4,27 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdexcept>
+#include <cstdlib>
+#include <sys/wait.h>
+#include "Server.h"
+
 
 using namespace std;
 
-class Stream {
+class Stream{
     void	*buffer;
     size_t	size;
+    Server* ServerRef;
+    string  path;
+    int     client; 
+
 public:
     Stream(void);
     Stream(string file);
+    Stream(Server *server, string path);
     void    createStream(void *, size_t);
     void    setStream(void *, size_t);
     void	*getStream(void);
@@ -21,6 +33,12 @@ public:
     void	saveFile(string file);
     Stream & operator = (Stream &);
     ~Stream(void);
-};
+    ContentMaker& getContentMaker();
+    char** generateEnv();
+    bool handleErrors(string file);
+    void handleFile(string& file);
+    void handleCGI(string& file);
+
+    };
 
 #endif

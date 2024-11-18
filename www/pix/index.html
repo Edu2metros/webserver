@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Você gosta de mim?</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    background-color: #ffd700;
+    padding: 20px;
+    border-radius: 10px;
+  }
+
+  #container {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  button {
+    display: block;
+    width: 200px;
+    margin: 10px auto;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+  }
+
+  button:hover {
+    background-color: #45a049;
+  }
+</style>
+</head>
+<body>
+  <h1>Você gosta de mim?</h1>
+  <div id="container">
+    <button id="sim" onclick="window.location.href='pix/qrcode.html'">Sim</button>
+    <button id="nao" onclick="moveButton()">Não</button>
+  </div>
+
+  <script>
+    function moveButton() {
+      var button = document.getElementById('nao');
+      var maxX = window.innerWidth - button.offsetWidth;
+      var maxY = window.innerHeight - button.offsetHeight;
+      var newX = Math.floor(Math.random() * maxX);
+      var newY = Math.floor(Math.random() * maxY);
+      button.style.position = 'absolute';
+      button.style.left = newX + 'px';
+      button.style.top = newY + 'px';
+    }
+  </script>
+</body>
+</html>
