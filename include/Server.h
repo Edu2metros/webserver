@@ -96,17 +96,9 @@ public:
             }
         }
     }
-    int getMethod()
-    {
-        return(master.isMethod());
-    }
-
-    map<string, string> getFormData()
-    {
-        return(master.getFormData());
-    }
+    int getMethod() { return(master.isMethod()); }
     string getMime() const { return mime; }
-
+    string getContentBody() const { return master.getContentBody(); }
 protected:
     string     host;
     string     port;

@@ -84,12 +84,12 @@ Server::Server(char *file) : host("127.0.0.1"), port("80"), sock(-1), root("www"
 
 Server::Server(string _host, string _port, string _root, map<string, string> _error, vector<Location> _location, size_t _maxBodySize)
 : host(_host), port(_port), maxBodySize(_maxBodySize), root(_root), error(_error), location(_location) {
-	errorPages["403"] = "default/defaultErrorPages/403.html";
-	errorPages["404"] = "default/defaultErrorPages/404.html";
-	errorPages["405"] = "default/defaultErrorPages/405.html";
-	errorPages["413"] = "default/defaultErrorPages/413.html";
-	errorPages["500"] = "default/defaultErrorPages/500.html";
-	errorPages["504"] = "default/defaultErrorPages/504.html";
+	errorPages["403"] = "errors/403.html";
+	errorPages["404"] = "errors/404.html";
+	errorPages["405"] = "errors/405.html";
+	errorPages["413"] = "errors/413.html";
+	errorPages["500"] = "errors/500.html";
+	errorPages["504"] = "errors/504.html";
 }
 
 

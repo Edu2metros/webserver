@@ -26,7 +26,6 @@ class Protocol {
     size_t  length;
     size_t  header;
     string contentBody;
-    map<string, string> formData;
 
 public:
     Protocol(void);
@@ -45,10 +44,7 @@ public:
     string      getHost(void);
     ~Protocol(void);
 
-    map<string, string> getFormData()
-    {
-        return formData;
-    }
+    string     getContentBody(void) const { return contentBody; }
 };
 
 #endif

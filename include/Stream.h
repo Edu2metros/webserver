@@ -38,7 +38,7 @@ public:
     bool handleErrors(string file);
     void handleFile(string& file);
     void handleCGI(string& file);
-
+    string getQueryString();
     };
 
 #endif

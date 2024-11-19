@@ -49,6 +49,7 @@ string Server::createPacket(int client) {
         else {
             if (FD_ISSET(client, &read_fd)) {
                 while (true) {
+                    memset(buffer, 0, sizeof(buffer));
                     piece = recv(client, buffer, 65535, 0);
                     if (piece > 0) {
                         currentSize += piece;
@@ -166,7 +167,6 @@ void Server::loadError(int client, const std::string& filePath, const std::strin
 }
 
 void Server::response(int client, string path, string protocol) {
-    cout << "path: " << path << endl;
 	int method = master.isMethod();
     struct stat info;
     size_t  pos = path.rfind(".");

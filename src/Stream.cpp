@@ -69,29 +69,35 @@ void Stream::handleFile(string& file){
     in.close();
 }
 
-void Stream::handleCGI(string& file){
-    map<string, string> formData = ServerRef->getFormData();
-    for(map<string, string>::iterator it = formData.begin(); it != formData.end(); ++it)
-        cout << it->first << " = " << it->second << endl;
-    
+string Stream::getQueryString(){
+    if(path.find("?") != string::npos){
+        size_t pos = path.find("?");
+        return path.substr(pos + 1);
+    }
+    return "";
+}
+
+void Stream::handleCGI(string& file) {
     int fd[2];
-    if (pipe(fd) == -1)
-        throw(string(" 500 Internal Server Error"));
+    if (pipe(fd) == -1) {
+        throw(string("500 Internal Server Error: Pipe creation failed"));
+    }
 
     pid_t pid = fork();
-    if (pid == -1)
-        throw(string(" 500 Internal Server Error"));
-    
+    if (pid == -1) {
+        throw(string("500 Internal Server Error: Fork failed"));
+    }
+
     else if (pid == 0) {
         close(fd[0]);
         dup2(fd[1], STDOUT_FILENO);
         dup2(fd[1], STDERR_FILENO);
         close(fd[1]);
 
-        string body = "name=juliocesar&age=3000000";
+        string body = ServerRef->getContentBody();
         int pipe_stdin[2];
         if (pipe(pipe_stdin) == -1) {
-            perror("pipe() failed");
+            perror("Pipe creation for STDIN failed");
             exit(EXIT_FAILURE);
         }
 
@@ -106,28 +112,38 @@ void Stream::handleCGI(string& file){
             close(pipe_stdin[0]);
         }
 
-        if(file.find(".php") != string::npos) {
-            const char* argv[] = {"php", file.c_str(), NULL};
-            string content_length = "CONTENT_LENGTH=" + body.size();
-            char* envp[] = {
-                (char*)content_length.c_str(),
-                (char*)"REQUEST_METHOD=POST",
-                NULL
-            };
+        char **args = new char*[3];
+        if (file.find(".php") != string::npos) {
+            args[0] = strdup("/usr/bin/php");
+            args[1] = strdup(file.c_str());
+            args[2] = NULL;
+        } else if (file.find(".py") != string::npos) {
+            args[0] = strdup("/usr/bin/python3");
+            args[1] = strdup(file.c_str());
+            args[2] = NULL;
+        } else {
+            cerr << "Unsupported script type" << endl;
+            exit(EXIT_FAILURE);
+        }
 
-            execve("/usr/bin/php", const_cast<char* const*>(argv), const_cast<char* const*>(envp));
-        } else if(file.find(".py") != string::npos) {
-        const char* argv[] = {"python3", file.c_str(), NULL};
-        string content_length = "CONTENT_LENGTH=" + body.size();
+        string request_method = std::string("REQUEST_METHOD=") + (ServerRef->getMethod() == GET ? "GET" : "POST");  
+        string query_string = ServerRef->getMethod() == GET ? "QUERY_STRING=" + getQueryString() : "";
+        string content_length = ServerRef->getMethod() == POST ? "CONTENT_LENGTH=" + body.size() : "";
+
         char* envp[] = {
-            (char*)content_length.c_str(),
-            (char*)"REQUEST_METHOD=POST",
+            (char*)request_method.c_str(),
+            (char*)(ServerRef->getMethod() == GET ? query_string.c_str() : content_length.c_str()),
             NULL
         };
 
-        execve("/usr/bin/python3", const_cast<char* const*>(argv), const_cast<char* const*>(envp));
-        perror("Execução do script falhou!");
-        exit(EXIT_FAILURE); }
+        execve(args[0], args, envp);
+
+        free(args[0]);
+        free(args[1]);
+        delete[] args;
+
+        perror("Script execution failed");
+        exit(EXIT_FAILURE);
     }
 
     else {
@@ -138,26 +154,24 @@ void Stream::handleCGI(string& file){
 
         int timeout_seconds = 5;
         time_t start_time = time(NULL);
-        bool timeout_reached = false;
 
         while (true) {
-            cout << "esperando..." << endl;
             int status;
             pid_t wait_result = waitpid(pid, &status, WNOHANG);
 
             if (wait_result == 0) {
                 if (difftime(time(NULL), start_time) >= timeout_seconds) {
                     kill(pid, SIGKILL);
-                    cerr << "O script demorou demais e foi terminado." << endl;
-                    timeout_reached = true;
-                    break;
+                    cerr << "The script took too long and was terminated." << endl;
+                    throw(string("504 Gateway Timeout"));
                 }
             } else if (wait_result == -1) {
-                perror("waitpid falhou");
-                break;
+                perror("waitpid failed");
+                throw(string("500 Internal Server Error: Waitpid failed"));
             } else {
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    cerr << "Execução do script falhou!" << endl;
+                    cerr << "Script execution failed!" << endl;
+                    throw(string("500 Internal Server Error: Script execution failed"));
                 }
                 break;
             }
@@ -166,22 +180,20 @@ void Stream::handleCGI(string& file){
             if (count > 0) {
                 result.append(data, count);
             } else if (count == -1) {
-                perror("Erro ao ler do pipe");
+                perror("Error reading from pipe");
+                throw(string("500 Internal Server Error: Error reading from pipe"));
+            } else if (count == 0) {
                 break;
-            } else if (count == 0)
-                break;
+            }
         }
 
         close(fd[0]);
 
-        if (timeout_reached)
-            throw(string(" 504 Gateway Timeout"));
-
         size = result.size();
         buffer = new char[size];
-        if (!buffer){
-            cerr << "Falha na alocação do buffer!" << endl;
-            throw(string(" 500 Internal Server Error"));
+        if (!buffer) {
+            cerr << "Buffer allocation failed!" << endl;
+            throw(string("500 Internal Server Error: Buffer allocation failed"));
         }
 
         memcpy(buffer, result.c_str(), size);
@@ -189,7 +201,6 @@ void Stream::handleCGI(string& file){
 }
 
 void Stream::loadFile(string file) {
-    file = "www/form.py";
     try{
         if(!handleErrors(file)){
             if (file.find(".php") == string::npos && file.find(".py") == string::npos) {
