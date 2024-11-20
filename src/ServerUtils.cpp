@@ -84,12 +84,12 @@ Server::Server(char *file) : host("127.0.0.1"), port("80"), sock(-1), root("www"
 
 Server::Server(string _host, string _port, string _root, map<string, string> _error, vector<Location> _location, size_t _maxBodySize)
 : host(_host), port(_port), maxBodySize(_maxBodySize), root(_root), error(_error), location(_location) {
-	errorPages["403"] = "errors/403.html";
-	errorPages["404"] = "errors/404.html";
-	errorPages["405"] = "errors/405.html";
-	errorPages["413"] = "errors/413.html";
-	errorPages["500"] = "errors/500.html";
-	errorPages["504"] = "errors/504.html";
+	errorPages["403"] = "errors/default/403.html";
+	errorPages["404"] = "errors/default/404.html";
+	errorPages["405"] = "errors/default/405.html";
+	errorPages["413"] = "errors/default/413.html";
+	errorPages["500"] = "errors/default/500.html";
+	errorPages["504"] = "errors/default/504.html";
 }
 
 
@@ -342,16 +342,23 @@ string  Server::mimeMaker(string path) {
 void Server::contentMaker(ContentMaker& content)
 {
     int client = content.getClient();
-    string protocol = content.getProtocol() + content.getStatus();
+    string protocol = "HTTP/1.1" + content.getStatus();
     string connection = content.getConnection();
     void *data = content.getData();
     size_t len = content.getLen();
+
+    // imprimir o conteudo que será enviado:
+    cout << "Client: " << client << endl;
+    cout << "Protocol: " << protocol << endl;
+    cout << "Connection: " << connection << endl;
+    cout << "Data: " << data << endl;
+    cout << "Len: " << len << endl;
 
     contentMaker(client, protocol, connection, data, len);
 }
 
 void  Server::contentMaker(int client, string protocol, string connection, void *data, size_t len) {
-	time_t  m_time;
+    time_t  m_time;
 	char    head[65536];
 	m_time = time(NULL); 
 	int head_len = sprintf(head, "%s\n"
@@ -373,6 +380,7 @@ void  Server::contentMaker(int client, string protocol, string connection, void 
 
 string Server::getPageDefault(const string &errorCode) {
     string page = error[errorCode];
+    cout << "Page: " << page << endl;
     if(!page.empty() && access(page.c_str(), F_OK))
         return page;
     cout << "Error code: " << errorCode << endl;
@@ -385,11 +393,9 @@ string Server::getPageDefault(const string &errorCode) {
 }
 
 void Server::loadErrorPage(Stream &stream, const string &errorCode) {
-    string page = this->errorPages[errorCode];
-    if(page.empty() || !access(page.c_str(), F_OK))
-        stream.loadFile(getPageDefault(errorCode));
-    else
-        stream.loadFile(root + page);
+    string path = getPageDefault(errorCode);
+    trim(path);
+    stream.loadFile(path);
 }
 
 void Server::loadIndexPage(Stream &stream, Location &location) {
@@ -400,10 +406,9 @@ void Server::loadIndexPage(Stream &stream, Location &location) {
 		index = findLocationPath("/").data["index"];
 
     if(tmpRoot.empty())
-        stream.loadFile(root + location.path + '/' + index);
+        stream.loadFile(root + location.path + index);
     else
         stream.loadFile(tmpRoot + '/' + index);
-    
 }
 
 #include <iostream>
@@ -483,6 +488,10 @@ void Server::defineLocationPath(Location &location, string path, string &Locatio
 }
 
 bool Server::HandleErrors(int client, string protocol) {
+    if(!transfer){
+        loadError(client, getPageDefault("500"), "500 Internal Server Error");
+        return(true);
+    }
     struct ErrorCheck {
         bool condition;
         const char* page;

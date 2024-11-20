@@ -27,27 +27,25 @@ string inside(string text, string sub, string stop) {
     return "";
 }
 
-void Protocol::extract(char *data) {
-    contentBody = "";
+void    Protocol::extract(char *data){
     istringstream parse(data);
-    size_t pos;
-    if ((pos = parse.str().find("Host: ")) != string::npos)
+    size_t  pos;
+    if((pos = parse.str().find("Host: ")) != string::npos)
         tmpHost = parse.str().substr(pos + 6, parse.str().find("\n", pos) - pos - 6);
-
     pos = tmpHost.find(":");
-    if (pos != string::npos)
+   if(pos != string::npos)
         tmpHost = tmpHost.substr(0, pos);
 
     parse >> method >> path >> type;
-    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
+   	if ((pos = parse.str().find("\r\n\r\n")) != string::npos)
         header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
-        contentBody = parse.str().substr(pos + 4);
-    }
+
     connection = inside(parse.str(), "Connection: ", "\n");
     boundary = inside(parse.str(), "boundary=", "\r\n");
-    file = inside(parse.str(), "filename=\"", "\"");
+    file = inside(parse.str(), "filename=\"","\"");
     length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
 }
+
 
 
 

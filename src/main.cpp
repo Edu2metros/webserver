@@ -10,6 +10,7 @@ void handleSignal(int signal) {
 
 int main(int argc, char **argv) {
     std::signal(SIGINT, handleSignal);  // Ctrl+C Signal
+    std::signal(SIGUSR1, handleSignal); // Kill Signal
     try{
         if (argc > 1) {
             Config config(argv[1]);

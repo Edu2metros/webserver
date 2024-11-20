@@ -43,8 +43,14 @@ bool Stream::handleErrors(string file){
         error = " 404 Not Found";
     else if (access(file.c_str(), R_OK) == -1)
         error = " 403 Forbidden";
-    else if(access(file.c_str(), X_OK) == -1)
+    else if(access(file.c_str(), X_OK) == -1 && (file.find(".php") != string::npos || file.find(".py") != string::npos))
         error = " 403 Forbidden";
+
+    if(!error.empty())
+    {
+        cout << file << endl;
+        cout << "chamado aqui: " << error << endl;
+    }
 
     if (!error.empty()) {
         ServerRef->loadErrorPage(*this, error.substr(1, 3));
@@ -55,18 +61,26 @@ bool Stream::handleErrors(string file){
 }
 
 void Stream::handleFile(string& file){
+    cout << "File received: " << file << endl;
     ifstream in(file.c_str(), ios::binary | ios::ate);
     if (!in.is_open() || in.bad() || in.fail())
+    {
+        cout << "deu erro\n";
         throw(string(" 500 Internal Server Error"));
+    }
 
     size = in.tellg();
     in.seekg(0, ios::beg);
     buffer = new char[size];
     if (!buffer)
+    {
+        cout << "deu erro\n";
         throw(string(" 500 Internal Server Error"));
+    }
 
     in.read(reinterpret_cast<char *>(buffer), size);
     in.close();
+    cout << "saiu\n";
 }
 
 string Stream::getQueryString(){

@@ -85,7 +85,7 @@ public:
     ContentMaker& getContentMaker() { return _contentMaker; }
 	bool HandleErrors(int client, string protocol);
     string getPageDefault(const string &errorCode);
-    void loadError(int client, const std::string& filePath, const std::string& errorCode);
+    void loadError(int client, std::string filePath, const std::string& errorCode);
     void printErrors(const std::vector<std::string>& codeErrors) {
         for (std::vector<std::string>::const_iterator it = codeErrors.begin(); it != codeErrors.end(); ++it) {
             std::map<std::string, std::string>::const_iterator errIt = error.find(*it);
@@ -99,6 +99,11 @@ public:
     int getMethod() { return(master.isMethod()); }
     string getMime() const { return mime; }
     string getContentBody() const { return master.getContentBody(); }
+
+    void handleGet(int client, string& path, Stream &stream);
+    void handlePost(int client, string& path, Stream &stream);
+    void handleDelete(int client, Stream &stream, const std::string &fullPath, Location &location);
+
 protected:
     string     host;
     string     port;
@@ -121,4 +126,5 @@ string extractURL(string &path);
 std::string ft_strip(const std::string& s);
 void Run(Server *server, int max);
 void handleSignal(int signal);
+void trim(string& str);
 #endif

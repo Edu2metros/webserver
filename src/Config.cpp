@@ -77,6 +77,11 @@ static void extractInfo(string line, ServerInfo & one, Location & local, int bra
 				{
 					string name = line.substr(0, line.find_first_of(" \t\n\r\f\v"));
 					string value = line.substr(line.find_last_of(" \t\n\r\f\v"), line.substr(line.find_last_of(" \t\n\r\f\v")).find(";"));
+					if(!access(value.c_str(), F_OK))
+					{
+						cout << "Error page |" << value << "| not found! Please fix it.\n";
+						exit(1);
+					}
 					one.error.insert(make_pair(name, value));
 				}
 				if (keyword[i] == "location ")
