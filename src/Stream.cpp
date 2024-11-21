@@ -32,10 +32,6 @@ int		Stream::streamSize(void) {
     return size;
 }
 
-ContentMaker& Stream::getContentMaker() {
-    return ServerRef->getContentMaker();
-}
-
 bool Stream::handleErrors(string file){
     string error;
 
@@ -53,14 +49,15 @@ bool Stream::handleErrors(string file){
     }
 
     if (!error.empty()) {
-        ServerRef->loadErrorPage(*this, error.substr(1, 3));
-        ServerRef->getContentMaker().setStatus(error);
+        loadFile(ServerRef->getPageDefault(error.substr(2, 4)));
+        ServerRef->setStatusCode(error);
         return true;
     }
     return false;
 }
 
 void Stream::handleFile(string& file){
+    // memset(buffer, 0, sizeof(buffer));
     cout << "File received: " << file << endl;
     ifstream in(file.c_str(), ios::binary | ios::ate);
     if (!in.is_open() || in.bad() || in.fail())
@@ -224,8 +221,8 @@ void Stream::loadFile(string file) {
             }
         }
     } catch (string& e) {
-        ServerRef->loadErrorPage(*this, e.substr(1, 3));
-        ServerRef->getContentMaker().setStatus(e);
+        loadFile(ServerRef->getPageDefault(e));
+        ServerRef->setStatusCode(e);
     }
 }
 

@@ -33,7 +33,6 @@ public:
     void	saveFile(string file);
     Stream & operator = (Stream &);
     ~Stream(void);
-    ContentMaker& getContentMaker();
     char** generateEnv();
     bool handleErrors(string file);
     void handleFile(string& file);

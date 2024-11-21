@@ -1,5 +1,6 @@
 #include "Config.h"
 
+
 bool skipLine(string line, size_t start, size_t end) {
 	if (start == string::npos || end == string::npos)
 		return true;
@@ -17,10 +18,10 @@ void locationPrint(vector<Location>::iterator local) {
 }
 
 size_t bodySize(string size) {
-	int	iSize = std::atoi(size.c_str());
+	int	iSize = atoi(size.c_str());
 	
 	if (iSize == 0)
-		throw std::runtime_error("Invalid body size format, using default file .conf");
+		throw runtime_error("Invalid body size format, using default file .conf");
 	if (size.find_first_of("Gg") != string::npos)
         return (size_t)iSize * 1024 * 1024 * 1024;
     else if (size.find_first_of("Mm") != string::npos)
@@ -30,12 +31,12 @@ size_t bodySize(string size) {
     else if (size.find_first_not_of("0123456789") == string::npos)
         return (size_t)iSize;
 	else
-		throw std::runtime_error("Invalid body size, using default file .conf");
+		throw runtime_error("Invalid body size, using default file .conf");
 }
 
 static void extractInfo(string line, ServerInfo & one, Location & local, int bracket) {
-	std::string::size_type start = line.find_first_not_of(" \t\n\r\f\v");
-    std::string::size_type end = line.find_last_not_of(" \t\n\r\f\v");
+	string::size_type start = line.find_first_not_of(" \t\n\r\f\v");
+    string::size_type end = line.find_last_not_of(" \t\n\r\f\v");
 	string keyword[] = {"server_name ", "root ", "listen ", "max_body_size ", "error_page ", "location "};
 	if(skipLine(line, start, end))
 		return;
@@ -102,7 +103,7 @@ Config::Config(char *file) {
 	Location 	local;
 
 	if (!in.is_open() || in.fail())
-		throw std::runtime_error("Error while trying to open file!");
+		throw runtime_error("Error while trying to open file!");
 	while (getline(in, line)) {
 		if (line.find("{") != string::npos)
 			bracket++;
@@ -111,7 +112,7 @@ Config::Config(char *file) {
 			bracket--;
 			if (bracket == 0) {
 				if(one.root.empty() || one.port.empty())
-					throw std::runtime_error("Invalid server configuration, using default file .conf");
+					throw runtime_error("Invalid server configuration, using default file .conf");
 				info.push_back(one);
 				one.name.clear();
                 one.root.clear();

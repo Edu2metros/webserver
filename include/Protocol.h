@@ -12,7 +12,8 @@ typedef enum{
     ENTITY_TOO_LARGE,
     GET,
     POST,
-    DELETE
+    DELETE,
+    INVALID_HOST
 }method_e;
 
 class Protocol {

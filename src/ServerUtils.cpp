@@ -1,5 +1,6 @@
 #include "Server.h"
 #include "Stream.h"
+#include "limits"
 
 #define MAX_CLIENT 65535
 
@@ -84,12 +85,17 @@ Server::Server(char *file) : host("127.0.0.1"), port("80"), sock(-1), root("www"
 
 Server::Server(string _host, string _port, string _root, map<string, string> _error, vector<Location> _location, size_t _maxBodySize)
 : host(_host), port(_port), maxBodySize(_maxBodySize), root(_root), error(_error), location(_location) {
-	errorPages["403"] = "errors/default/403.html";
+	errorPages["204"] = "errors/default/204.html";
+    errorPages["400"] = "errors/default/400.html";
+    errorPages["403"] = "errors/default/403.html";
 	errorPages["404"] = "errors/default/404.html";
 	errorPages["405"] = "errors/default/405.html";
 	errorPages["413"] = "errors/default/413.html";
 	errorPages["500"] = "errors/default/500.html";
 	errorPages["504"] = "errors/default/504.html";
+
+    if(maxBodySize == 0)
+        maxBodySize = numeric_limits<size_t>::max();
 }
 
 
@@ -105,6 +111,7 @@ Server &Server::operator=(Server const &pointer) {
         transfer = pointer.transfer;
         error = pointer.error;
         errorPages = pointer.errorPages;
+        _statusCode = pointer._statusCode;
     }
     return *this;
 }
@@ -339,24 +346,6 @@ string  Server::mimeMaker(string path) {
 	return mime;
 }
 
-void Server::contentMaker(ContentMaker& content)
-{
-    int client = content.getClient();
-    string protocol = "HTTP/1.1" + content.getStatus();
-    string connection = content.getConnection();
-    void *data = content.getData();
-    size_t len = content.getLen();
-
-    // imprimir o conteudo que será enviado:
-    cout << "Client: " << client << endl;
-    cout << "Protocol: " << protocol << endl;
-    cout << "Connection: " << connection << endl;
-    cout << "Data: " << data << endl;
-    cout << "Len: " << len << endl;
-
-    contentMaker(client, protocol, connection, data, len);
-}
-
 void  Server::contentMaker(int client, string protocol, string connection, void *data, size_t len) {
     time_t  m_time;
 	char    head[65536];
@@ -365,7 +354,7 @@ void  Server::contentMaker(int client, string protocol, string connection, void 
 								   "Date: %s"
 								   "Connection: %s\n"
 								   "Content-Type: %s\n"
-								   "Content-Lenght: %li\n\n",
+								   "Content-Length: %li\n\n",
 								   protocol.c_str(), ctime(&m_time), connection.c_str(), mime.c_str(), len);
 
 	char *content = new char[head_len + len];
@@ -380,22 +369,14 @@ void  Server::contentMaker(int client, string protocol, string connection, void 
 
 string Server::getPageDefault(const string &errorCode) {
     string page = error[errorCode];
-    cout << "Page: " << page << endl;
     if(!page.empty() && access(page.c_str(), F_OK))
         return page;
-    cout << "Error code: " << errorCode << endl;
 
     map<string, string>::iterator it = this->errorPages.find(errorCode);
     if (it != this->errorPages.end()) {
         return it->second;
     }
     return("");
-}
-
-void Server::loadErrorPage(Stream &stream, const string &errorCode) {
-    string path = getPageDefault(errorCode);
-    trim(path);
-    stream.loadFile(path);
 }
 
 void Server::loadIndexPage(Stream &stream, Location &location) {
@@ -411,16 +392,6 @@ void Server::loadIndexPage(Stream &stream, Location &location) {
         stream.loadFile(tmpRoot + '/' + index);
 }
 
-#include <iostream>
-#include <sstream>
-#include <dirent.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <iostream>
-#include <fstream>
-#include <dirent.h>
-#include <unistd.h>
 
 void Server::loadDirectoryPage(int client, Stream &stream, const string &fullPath) {
 
@@ -437,7 +408,8 @@ void Server::loadDirectoryPage(int client, Stream &stream, const string &fullPat
         }
         closedir(dir);
     } else {
-        loadError(client, getPageDefault("500"), "500 Internal Server Error");
+        stream.loadFile(getPageDefault("500"));
+        _statusCode = " 500 Internal Server Error";
         return;
     }
 
@@ -446,7 +418,8 @@ void Server::loadDirectoryPage(int client, Stream &stream, const string &fullPat
     char tempFile[] = "/tmp/tmpFileXXXXXX";
     int fd = mkstemp(tempFile);
     if (fd == -1) {
-        loadError(client, getPageDefault("500"), "500 Internal Server Error");
+        stream.loadFile(getPageDefault("500"));
+        _statusCode = " 500 Internal Server Error";
         return;
     }
 
@@ -455,7 +428,8 @@ void Server::loadDirectoryPage(int client, Stream &stream, const string &fullPat
         ofs << html;
         ofs.close();
     } else {
-        loadError(client, getPageDefault("500"), "500 Internal Server Error");
+        stream.loadFile(getPageDefault("500"));
+        _statusCode = " 500 Internal Server Error";
         close(fd);
         return;
     }
@@ -487,9 +461,10 @@ void Server::defineLocationPath(Location &location, string path, string &Locatio
         LocationRoot = "";
 }
 
-bool Server::HandleErrors(int client, string protocol) {
+bool Server::HandleErrors(int client, string protocol, Stream stream) {
     if(!transfer){
-        loadError(client, getPageDefault("500"), "500 Internal Server Error");
+        stream.loadFile(getPageDefault("500"));
+        _statusCode = " 500 Internal Server Error";
         return(true);
     }
     struct ErrorCheck {
@@ -499,14 +474,16 @@ bool Server::HandleErrors(int client, string protocol) {
     };
 
     ErrorCheck errors[] = {
-        {protocol != "HTTP/1.1", "400", "400 Bad Request"},
-        {master.isMethod() == INVALID_REQUEST, "405", "405 Method Not Allowed"},
-        {master.isMethod() == ENTITY_TOO_LARGE, "413", "413 Request Entity Too Large"}
+        {protocol != "HTTP/1.1", "400", " 400 Bad Request"},
+        {master.isMethod() == INVALID_REQUEST, "405", " 405 Method Not Allowed"},
+        {master.isMethod() == ENTITY_TOO_LARGE, "413", " 413 Request Entity Too Large"},
+        {master.isMethod() == INVALID_HOST, "400", " 400 Bad Request"}
     };
 
     for (long unsigned int i = 0; i < sizeof(errors) / sizeof(errors[0]); ++i) {
         if (errors[i].condition) {
-            loadError(client, getPageDefault(errors[i].page), errors[i].message);
+            stream.loadFile(getPageDefault(errors[i].page));
+            _statusCode = errors[i].message;
             return true;
         }
     }

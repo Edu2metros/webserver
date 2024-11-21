@@ -3,14 +3,13 @@
 
 void handleSignal(int signal) {
     if (signal == SIGINT) {
-        std::cout << "SIGINT signal received. Quitting..." << std::endl;
+        cout << "SIGINT signal received. Quitting..." << endl;
         exit(0);
     }
 }
 
 int main(int argc, char **argv) {
-    std::signal(SIGINT, handleSignal);  // Ctrl+C Signal
-    std::signal(SIGUSR1, handleSignal); // Kill Signal
+    signal(SIGINT, handleSignal);  // Ctrl+C Signal
     try{
         if (argc > 1) {
             Config config(argv[1]);
@@ -30,8 +29,8 @@ int main(int argc, char **argv) {
             server.run();
         }
     }
-    catch(const std::exception &e) {
-        std::cerr << e.what() << std::endl;
+    catch(const exception &e) {
+        cerr << e.what() << endl;
         Server server;
         server.run();
     }
