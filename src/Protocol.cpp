@@ -27,9 +27,13 @@ string inside(string text, string sub, string stop) {
     return "";
 }
 
+// biblioteca strlen
+
+#include <string.h>
+
 void Protocol::extract(char *data) {
     // cout << "Recebido:\n" << data << endl;
-
+    cout << "Tamanho data: " << strlen(data) << endl;
     istringstream parse(data);
     size_t pos;
 
@@ -47,11 +51,13 @@ void Protocol::extract(char *data) {
     }
 
     if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-        size_t bodyStart = pos + 4;
-        header = parse.str().substr(bodyStart).find("\r\n\r\n") + bodyStart + 4;
-        cout << "Header: " << parse.str().substr(bodyStart).find("\r\n\r\n") + bodyStart + 4<< endl;
+        size_t bodyStart = pos + 4; // O corpo começa logo após o cabeçalho
+        header = bodyStart; // O tamanho do cabeçalho termina aqui
+        cout << "Header: " << header << endl;
+        cout << "Body start: " << bodyStart << endl;
         contentBody = parse.str().substr(bodyStart);
     }
+
 
     if (connection.empty()) {
         connection = inside(parse.str(), "Connection: ", "\n");

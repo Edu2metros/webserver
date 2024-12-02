@@ -65,6 +65,7 @@
     "string": "cpp",
     "stdexcept": "cpp",
     "fstream": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "*.tcc": "cpp"
   }
 }
