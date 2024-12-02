@@ -87,6 +87,8 @@ string Server::createPacket(int client) {
 
                             if (master.getFileLen() && packetCreated == true) {
                                 path = "upload/" + master.getFileName();
+                                if(access(path.c_str(), F_OK) == 0)
+                                    path = path + "_copy";
                                 if (master.isMethod() == POST) {
                                     // struct stat mStat;
                                     // if (!stat(path.c_str(), &mStat) && mStat.st_size > 0) {
