@@ -20,6 +20,7 @@ class Stream{
     Server* ServerRef;
     string  path;
     int     client; 
+    string _bufferString;
 
 public:
     Stream(void);
@@ -38,6 +39,7 @@ public:
     void handleFile(string& file);
     void handleCGI(string& file);
     string getQueryString();
-    };
+    string getBufferString() { return _bufferString; }    
+};
 
 #endif

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <dirent.h>
 #include <sys/types.h>
+#include <set>
 
 class Stream;
 
@@ -81,7 +82,7 @@ public:
     void defineFullPath(string &fullPath, Location &location, string url);
     void defineLocationPath(Location &location, string path, string &LocationRoot);
     void LoadSpecifiedFile(int client, const string &path, const string &status);
-    bool HandleErrors(int client, string protocol, Stream stream);
+    bool HandleErrors(int client, string protocol, Stream& stream);
     string getPageDefault(const string &errorCode);
     void loadError(int client, std::string filePath, const std::string &errorCode);
     void printErrors(const std::vector<std::string> &codeErrors)
@@ -107,6 +108,7 @@ public:
     void handleDelete(int client, Stream &stream, const std::string &fullPath, Location &location);
     string getStatusCode() const { return _statusCode; }
     void setStatusCode(const string &statusCode) { _statusCode = statusCode; }
+    void contentMaker(int client, string protocol, string connection, string buffer);
 protected:
     string host;
     string port;
@@ -130,4 +132,5 @@ std::string ft_strip(const std::string &s);
 void Run(Server *server, int max);
 void handleSignal(int signal);
 void trim(string &str);
+string returnTrim(const string& str);
 #endif

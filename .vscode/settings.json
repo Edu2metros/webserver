@@ -59,6 +59,12 @@
   "files.associations": {
     "ostream": "cpp",
     "iostream": "cpp",
-    "new": "cpp"
+    "new": "cpp",
+    "iosfwd": "cpp",
+    "limits": "cpp",
+    "string": "cpp",
+    "stdexcept": "cpp",
+    "fstream": "cpp",
+    "sstream": "cpp"
   }
 }

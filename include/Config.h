@@ -32,7 +32,7 @@ class Config{
     vector<ServerInfo> info;
     public:
         Config(void);
-        Config(char *file);
+        Config(const char *file);
         vector<ServerInfo> infoGet(void);
         string getName(int);
         void print(void);

@@ -13,7 +13,8 @@ typedef enum{
     GET,
     POST,
     DELETE,
-    INVALID_HOST
+    INVALID_HOST,
+    CONFLICT
 }method_e;
 
 class Protocol {

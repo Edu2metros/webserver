@@ -7,7 +7,7 @@ Protocol::Protocol(char *data) : method("GET"), path("/"), type("HTTP/1.1"), con
 }
 
 void    Protocol::reset(void) {
-    method = "GET";
+    method = "";
     path = "";
     type = "";
     connection = "";
@@ -28,26 +28,49 @@ string inside(string text, string sub, string stop) {
 }
 
 void Protocol::extract(char *data) {
-    contentBody = "";
+    // cout << "Recebido:\n" << data << endl;
+
     istringstream parse(data);
     size_t pos;
-    if ((pos = parse.str().find("Host: ")) != string::npos)
+
+    if ((pos = parse.str().find("Host: ")) != string::npos && tmpHost.empty()) {
         tmpHost = parse.str().substr(pos + 6, parse.str().find("\n", pos) - pos - 6);
 
-    pos = tmpHost.find(":");
-    if (pos != string::npos)
-        tmpHost = tmpHost.substr(0, pos);
-
-    parse >> method >> path >> type;
-    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-        header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
-        contentBody = parse.str().substr(pos + 4);
+        pos = tmpHost.find(":");
+        if (pos != string::npos) {
+            tmpHost = tmpHost.substr(0, pos);
+        }
     }
-    connection = inside(parse.str(), "Connection: ", "\n");
-    boundary = inside(parse.str(), "boundary=", "\r\n");
-    file = inside(parse.str(), "filename=\"", "\"");
-    length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
+
+    if (method.empty() && path.empty() && type.empty()) {
+        parse >> method >> path >> type;
+    }
+
+    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
+        size_t bodyStart = pos + 4;
+        header = parse.str().substr(bodyStart).find("\r\n\r\n") + bodyStart + 4;
+        cout << "Header: " << parse.str().substr(bodyStart).find("\r\n\r\n") + bodyStart + 4<< endl;
+        contentBody = parse.str().substr(bodyStart);
+    }
+
+    if (connection.empty()) {
+        connection = inside(parse.str(), "Connection: ", "\n");
+    }
+
+    if (boundary.empty()) {
+        boundary = inside(parse.str(), "boundary=", "\r\n");
+    }
+
+    if (file.empty()) {
+        file = inside(parse.str(), "filename=\"", "\"");
+    }
+
+    if (length == 0) {
+        length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
+    }
 }
+
+
 
 void    Protocol::setMethod(string value) {
     method = value;
@@ -64,6 +87,8 @@ method_e    Protocol::isMethod(void) {
         return ENTITY_TOO_LARGE;
     else if(method == "INVALID_HOST")
         return INVALID_HOST;
+    else if(method == "CONFLICT")
+        return CONFLICT;
     return INVALID_REQUEST;
 }
 
