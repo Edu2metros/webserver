@@ -133,4 +133,6 @@ void Run(Server *server, int max);
 void handleSignal(int signal);
 void trim(string &str);
 string returnTrim(const string& str);
+void trim(string& str);
+void trim(char str[]);
 #endif

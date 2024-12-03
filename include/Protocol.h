@@ -14,7 +14,7 @@ typedef enum{
     POST,
     DELETE,
     INVALID_HOST,
-    CONFLICT
+    CONFLICT,
 }method_e;
 
 class Protocol {
@@ -45,7 +45,6 @@ public:
     size_t      getHeaderLen(void);
     string      getHost(void);
     ~Protocol(void);
-
     string     getContentBody(void) const { return contentBody; }
 };
 

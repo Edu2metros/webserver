@@ -158,6 +158,18 @@ string returnTrim(const string& str) {
     return str.substr(start, end - start + 1);
 }
 
+void trim(char str[]) {
+    size_t start = 0;
+    while (str[start] == ' ' || str[start] == '\t' || str[start] == '\n' || str[start] == '\r' || str[start] == '\f' || str[start] == '\v') {
+        start++;
+    }
+    size_t end = strlen(str) - 1;
+    while (str[end] == ' ' || str[end] == '\t' || str[end] == '\n' || str[end] == '\r' || str[end] == '\f' || str[end] == '\v') {
+        end--;
+    }
+    str[end + 1] = '\0';
+    memmove(str, str + start, end - start + 1);
+}
 
 void trim(string& str) {
     size_t start = str.find_first_not_of(" \t\n\r\f\v");

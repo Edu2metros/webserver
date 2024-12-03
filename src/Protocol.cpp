@@ -7,7 +7,7 @@ Protocol::Protocol(char *data) : method("GET"), path("/"), type("HTTP/1.1"), con
 }
 
 void    Protocol::reset(void) {
-    method = "";
+    method = "GET";
     path = "";
     type = "";
     connection = "";
@@ -27,56 +27,27 @@ string inside(string text, string sub, string stop) {
     return "";
 }
 
-// biblioteca strlen
-
-#include <string.h>
-
 void Protocol::extract(char *data) {
-    // cout << "Recebido:\n" << data << endl;
-    cout << "Tamanho data: " << strlen(data) << endl;
+    contentBody = "";
     istringstream parse(data);
     size_t pos;
-
-    if ((pos = parse.str().find("Host: ")) != string::npos && tmpHost.empty()) {
+    if ((pos = parse.str().find("Host: ")) != string::npos)
         tmpHost = parse.str().substr(pos + 6, parse.str().find("\n", pos) - pos - 6);
 
-        pos = tmpHost.find(":");
-        if (pos != string::npos) {
-            tmpHost = tmpHost.substr(0, pos);
-        }
-    }
+    pos = tmpHost.find(":");
+    if (pos != string::npos)
+        tmpHost = tmpHost.substr(0, pos);
 
-    if (method.empty() && path.empty() && type.empty()) {
-        parse >> method >> path >> type;
-    }
-
+    parse >> method >> path >> type;
     if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-        size_t bodyStart = pos + 4; // O corpo começa logo após o cabeçalho
-        header = bodyStart; // O tamanho do cabeçalho termina aqui
-        cout << "Header: " << header << endl;
-        cout << "Body start: " << bodyStart << endl;
-        contentBody = parse.str().substr(bodyStart);
+        header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
+        contentBody = parse.str().substr(pos + 4);
     }
-
-
-    if (connection.empty()) {
-        connection = inside(parse.str(), "Connection: ", "\n");
-    }
-
-    if (boundary.empty()) {
-        boundary = inside(parse.str(), "boundary=", "\r\n");
-    }
-
-    if (file.empty()) {
-        file = inside(parse.str(), "filename=\"", "\"");
-    }
-
-    if (length == 0) {
-        length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
-    }
+    connection = inside(parse.str(), "Connection: ", "\n");
+    boundary = inside(parse.str(), "boundary=", "\r\n");
+    file = inside(parse.str(), "filename=\"", "\"");
+    length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
 }
-
-
 
 void    Protocol::setMethod(string value) {
     method = value;
