@@ -15,6 +15,7 @@ void    Protocol::reset(void) {
     file = "";
     length = 0;
     header = 0;
+    contentBody = "";
 }
 
 string inside(string text, string sub, string stop) {
@@ -27,27 +28,30 @@ string inside(string text, string sub, string stop) {
     return "";
 }
 
-void Protocol::extract(char *data) {
-    contentBody = "";
+
+void Protocol::extract(const char *data) {
     istringstream parse(data);
     size_t pos;
+
+    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
+        header = pos + 4;
+        contentBody = parse.str().substr(pos + 4); 
+    }
+
     if ((pos = parse.str().find("Host: ")) != string::npos)
         tmpHost = parse.str().substr(pos + 6, parse.str().find("\n", pos) - pos - 6);
 
-    pos = tmpHost.find(":");
-    if (pos != string::npos)
+    if ((pos = tmpHost.find(":")) != string::npos)
         tmpHost = tmpHost.substr(0, pos);
-
+        
     parse >> method >> path >> type;
-    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-        header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
-        contentBody = parse.str().substr(pos + 4);
-    }
     connection = inside(parse.str(), "Connection: ", "\n");
     boundary = inside(parse.str(), "boundary=", "\r\n");
     file = inside(parse.str(), "filename=\"", "\"");
-    length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
 }
+
+
+
 
 void    Protocol::setMethod(string value) {
     method = value;
@@ -64,8 +68,6 @@ method_e    Protocol::isMethod(void) {
         return ENTITY_TOO_LARGE;
     else if(method == "INVALID_HOST")
         return INVALID_HOST;
-    else if(method == "CONFLICT")
-        return CONFLICT;
     return INVALID_REQUEST;
 }
 
@@ -102,3 +104,18 @@ size_t  Protocol::getHeaderLen(void) {
 }
 
 Protocol::~Protocol(){}
+
+ostream &operator<<(ostream &os, const Protocol &protocol) {
+    os << "Protocol details:" << endl;
+    os << "  Method:       " << protocol.method << endl;
+    os << "  Path:         " << protocol.path << endl;
+    os << "  Type:         " << protocol.type << endl;
+    os << "  Connection:   " << protocol.connection << endl;
+    os << "  Boundary:     " << protocol.boundary << endl;
+    os << "  TmpHost:      " << protocol.tmpHost << endl;
+    os << "  File:         " << protocol.file << endl;
+    os << "  Length:       " << protocol.length << endl;
+    os << "  Header:       " << protocol.header << endl;
+    os << "  ContentBody:  " << protocol.contentBody << endl;
+    return os;
+}

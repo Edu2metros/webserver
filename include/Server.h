@@ -109,6 +109,7 @@ public:
     string getStatusCode() const { return _statusCode; }
     void setStatusCode(const string &statusCode) { _statusCode = statusCode; }
     void contentMaker(int client, string protocol, string connection, string buffer);
+
 protected:
     string host;
     string port;

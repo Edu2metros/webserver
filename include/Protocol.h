@@ -7,7 +7,8 @@
 #include <map>
 
 using namespace std;
-typedef enum{
+
+typedef enum {
     INVALID_REQUEST,
     ENTITY_TOO_LARGE,
     GET,
@@ -15,7 +16,7 @@ typedef enum{
     DELETE,
     INVALID_HOST,
     CONFLICT,
-}method_e;
+} method_e;
 
 class Protocol {
     string  method;
@@ -27,13 +28,13 @@ class Protocol {
     string  file;
     size_t  length;
     size_t  header;
-    string contentBody;
+    string  contentBody;
 
 public:
     Protocol(void);
     Protocol(char *);
     void        reset(void);
-    void        extract(char *);
+    void        extract(const char *);
     method_e    isMethod(void);
     void        setMethod(string);
     string      getPath(void);
@@ -45,7 +46,10 @@ public:
     size_t      getHeaderLen(void);
     string      getHost(void);
     ~Protocol(void);
-    string     getContentBody(void) const { return contentBody; }
+    string      getContentBody(void) const { return contentBody; }
+
+    // Declaração do operador friend
+    friend ostream &operator<<(ostream &os, const Protocol &protocol);
 };
 
 #endif

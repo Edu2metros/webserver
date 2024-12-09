@@ -28,74 +28,53 @@ string Server::createPacket(int client) {
 
     master.reset();
     transfer = false;
-
-    if (!std::filesystem::exists(root + "upload")) {
-        std::filesystem::create_directory(root + "upload");
-    }
-
+    
     while (creating) {
         FD_ZERO(&read_fd);
         FD_SET(client, &read_fd);
 
         if (!packetCreated || maxBodySize < master.getFileLen()) {
-            timeout.tv_sec = 10;
-            timeout.tv_usec = 0;
-        } else {
+			timeout.tv_sec = 10;
+			timeout.tv_usec = 0;
+		}
+		else {
             timeout.tv_sec = 0;
-            timeout.tv_usec = master.getFileLen() / 1000;
-        }
-
-        if (master.isMethod() == INVALID_REQUEST || master.isMethod() == ENTITY_TOO_LARGE || master.isMethod() == INVALID_HOST) {
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 0;
-        }
-
+			timeout.tv_usec = master.getFileLen() / 1000;
+		}
         int receiving = select(client + 1, &read_fd, NULL, NULL, &timeout);
         if (receiving < 0) {
             creating = false;
             transfer = false;
             cout << "Error on select\n";
-        } else if (receiving == 0) {
+        }
+        else if (receiving == 0) {
             transfer = true;
             break;
-        } else {
+        }
+        else {
             if (FD_ISSET(client, &read_fd)) {
                 while (true) {
-                    memset(buffer, 0, sizeof(buffer));
                     piece = recv(client, buffer, 65535, 0);
+
                     if (piece > 0) {
                         currentSize += piece;
+                        master.extract(buffer);
                         if (!packetCreated && !out.is_open()) {
-                            master.extract(buffer);
                             checkAcceptedMethod(master);
-                            if (master.isMethod() == INVALID_REQUEST)
-                                break;
-                            else if (host != "" && master.getHost() != "localhost" && master.getHost() != "127.0.0.1" && master.getHost() != host) {
-                                master.setMethod("INVALID");
-                                break;
-                            }
                             packetCreated = true;
-
                             if (master.getFileLen() && master.getFileLen() <= maxBodySize) {
                                 path = "upload/" + master.getFileName();
                                 if (master.isMethod() == POST) {
-                                    struct stat mStat;
-                                    if (!stat(path.c_str(), &mStat) && mStat.st_size > 0) {
-                                        remove(path.c_str());
-                                    }
+                                    // struct stat mStat;
+                                    // if (!stat(path.c_str(), &mStat) && mStat.st_size > 0) {
+                                        // remove(path.c_str());
+                                    // }
                                     out.open(path.c_str(), ios::out | ios::binary);
                                 }
-                                if (!out.is_open()) {
-                                    cerr << "Error: Unable to open file at path " << path << endl;
-                                    creating = false;
-                                    break;
-                                }
+                                if (!out.is_open())
+                                    continue;
                                 offset = (size_t)master.getHeaderLen();
                             }
-                        }
-                        if (master.getFileLen() != 0 && master.isMethod() == POST && master.getFileLen() > maxBodySize) {
-                            master.setMethod("ENTITY_TOO_LARGE");
-                            break;
                         }
                         dataLen = piece - offset;
                         size_t remainingLen = size_t(master.getFileLen()) - writtenByte;
@@ -106,9 +85,18 @@ string Server::createPacket(int client) {
                             char *sub = strstr(buffer + offset, master.getBoundary().c_str());
                             if (sub)
                                 dataLen -= master.getBoundary().length() + 6;
-                            if (master.getFileLen() <= maxBodySize)
+                            if (true)
+                            {
+                                cout << "Tamanho offset: " << offset << endl;
+                                cout << "Tamanho dataLen: " << dataLen << endl;
+                                cout << "Imprimido: " << string(buffer + offset, dataLen) << endl;
                                 out.write(buffer + offset, dataLen);
+                            }
                             writtenByte += dataLen;
+                        if(writtenByte > maxBodySize) {
+                            transfer = false;
+                            break;
+                        }
                             if (master.isMethod() == POST)
                                 cout << "uploaded " << writtenByte << " of " << master.getFileLen() << endl;
                         }
@@ -118,12 +106,14 @@ string Server::createPacket(int client) {
                             break;
                         }
                         offset = 0;
-                    } else if (piece == 0 || writtenByte >= master.getFileLen()) {
+                    }
+                    else if (piece == 0 || writtenByte >= master.getFileLen()) {
                         cout << "Received entire file\n";
                         transfer = true;
                         creating = true;
                         break;
-                    } else {
+                    }
+                    else {
                         transfer = false;
                         cout << "*uploaded " << writtenByte << " of " << master.getFileLen() << endl;
                         break;
@@ -132,21 +122,15 @@ string Server::createPacket(int client) {
             }
         }
     }
-
+    
     out.close();
-
-    if (master.isMethod() == ENTITY_TOO_LARGE)
-        usleep(master.getFileLen() / 1000);
-
-    if (!transfer || master.isMethod() == ENTITY_TOO_LARGE) {
-        if (!path.empty() && std::filesystem::is_regular_file(path)) {
-            remove(path.c_str());
-        }
-        cerr << "could not transfer " << path << endl;
+    if (!transfer) {
+        remove(path.c_str());
+        cout << "could not transfer " << path << endl;
     }
-
     return "";
 }
+
 
 
 
