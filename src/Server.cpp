@@ -1,6 +1,5 @@
 #include "Stream.h"
 #include "Server.h"
-
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -12,7 +11,7 @@
 
 using namespace std;
 
-string Server::createPacket(int client) {
+/* string Server::createPacket(int client) {
     fd_set          read_fd;
     struct timeval  timeout;
     bool            packetCreated = false;
@@ -129,7 +128,7 @@ string Server::createPacket(int client) {
         cout << "could not transfer " << path << endl;
     }
     return "";
-}
+} */
 
 
 
