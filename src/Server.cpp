@@ -11,7 +11,7 @@
 
 using namespace std;
 
-/* string Server::createPacket(int client) {
+string Server::createPacket(int client) {
     fd_set          read_fd;
     struct timeval  timeout;
     bool            packetCreated = false;
@@ -23,112 +23,98 @@ using namespace std;
     size_t          offset = 0;
     int             piece;
     string          path("");
-    ofstream        out; 
+    ofstream        out;
 
     master.reset();
-    transfer = false;
-    
+
     while (creating) {
         FD_ZERO(&read_fd);
         FD_SET(client, &read_fd);
 
-        if (!packetCreated || maxBodySize < master.getFileLen()) {
-			timeout.tv_sec = 10;
-			timeout.tv_usec = 0;
-		}
-		else {
-            timeout.tv_sec = 0;
-			timeout.tv_usec = master.getFileLen() / 1000;
-		}
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 100000;
+
         int receiving = select(client + 1, &read_fd, NULL, NULL, &timeout);
         if (receiving < 0) {
             creating = false;
-            transfer = false;
             cout << "Error on select\n";
-        }
-        else if (receiving == 0) {
-            transfer = true;
+        } else if (receiving == 0) {
             break;
-        }
-        else {
+        } else {
             if (FD_ISSET(client, &read_fd)) {
-                while (true) {
-                    piece = recv(client, buffer, 65535, 0);
+                piece = recv(client, buffer, sizeof(buffer), 0);
+                cout << "Tamanho Pedaço: " << piece << endl;
 
-                    if (piece > 0) {
-                        currentSize += piece;
+                if (piece > 0) {
+                    currentSize += piece;
+
+                    if (!packetCreated) {
                         master.extract(buffer);
-                        if (!packetCreated && !out.is_open()) {
-                            checkAcceptedMethod(master);
-                            packetCreated = true;
-                            if (master.getFileLen() && master.getFileLen() <= maxBodySize) {
-                                path = "upload/" + master.getFileName();
-                                if (master.isMethod() == POST) {
-                                    // struct stat mStat;
-                                    // if (!stat(path.c_str(), &mStat) && mStat.st_size > 0) {
-                                        // remove(path.c_str());
-                                    // }
-                                    out.open(path.c_str(), ios::out | ios::binary);
-                                }
-                                if (!out.is_open())
-                                    continue;
-                                offset = (size_t)master.getHeaderLen();
-                            }
-                        }
-                        dataLen = piece - offset;
-                        size_t remainingLen = size_t(master.getFileLen()) - writtenByte;
 
-                        if (remainingLen <= dataLen)
-                            dataLen = remainingLen;
-                        if (dataLen > 0) {
-                            char *sub = strstr(buffer + offset, master.getBoundary().c_str());
-                            if (sub)
-                                dataLen -= master.getBoundary().length() + 6;
-                            if (true)
-                            {
-                                cout << "Tamanho offset: " << offset << endl;
-                                cout << "Tamanho dataLen: " << dataLen << endl;
-                                cout << "Imprimido: " << string(buffer + offset, dataLen) << endl;
-                                out.write(buffer + offset, dataLen);
+                        if (master.getFileName() != "")
+                            packetCreated = true;
+
+                        if (master.getFileLen() && master.getFileLen() <= maxBodySize && master.getFileName() != "") {
+                            path = "upload/" + master.getFileName();
+
+                            if (master.getFileName() != "") {
+                                out.open(path.c_str(), ios::out | ios::binary);
                             }
-                            writtenByte += dataLen;
-                        if(writtenByte > maxBodySize) {
-                            transfer = false;
+                            if (!out.is_open())
+                                continue;
+                            offset = (size_t)master.getHeaderLen();
+                        }
+                    }
+
+                    dataLen = piece - offset;
+                    size_t remainingLen = size_t(master.getFileLen()) - writtenByte;
+
+                    if (remainingLen <= dataLen)
+                        dataLen = remainingLen;
+
+                    if (dataLen > 0) {
+                        char *sub = strstr(buffer + offset, master.getBoundary().c_str());
+                        if (sub) {
+                            dataLen -= master.getBoundary().length() + 8;
+                        }
+                        cout << "Imprimido: " << string(buffer + offset, dataLen) << endl;
+                        out.write(buffer + offset, dataLen);
+                        writtenByte += dataLen;
+
+                        if (writtenByte > maxBodySize) {
                             break;
                         }
-                            if (master.isMethod() == POST)
-                                cout << "uploaded " << writtenByte << " of " << master.getFileLen() << endl;
-                        }
-                        if (writtenByte >= master.getFileLen()) {
-                            cout << "transfer done\n";
-                            transfer = true;
-                            break;
-                        }
-                        offset = 0;
+
+                        if (master.isMethod() == POST)
+                            cout << "uploaded " << writtenByte << " of " << master.getFileLen() << endl;
                     }
-                    else if (piece == 0 || writtenByte >= master.getFileLen()) {
-                        cout << "Received entire file\n";
-                        transfer = true;
-                        creating = true;
+
+                    if (writtenByte >= master.getFileLen()) {
+                        cout << "transfer done\n";
                         break;
                     }
-                    else {
-                        transfer = false;
-                        cout << "*uploaded " << writtenByte << " of " << master.getFileLen() << endl;
-                        break;
-                    }
+                    offset = 0;
+                } else if (piece == 0 || writtenByte >= master.getFileLen()) {
+                    cout << "Received entire file\n";
+                    creating = true;
+                    break;
+                } else {
+                    cout << "*uploaded " << writtenByte << " of " << master.getFileLen() << endl;
+                    break;
                 }
             }
         }
     }
-    
+
     out.close();
-    if (!transfer) {
-        remove(path.c_str());
-        cout << "could not transfer " << path << endl;
-    }
+    // if (!transfer) {
+    //     remove(path.c_str());
+    //     cout << "could not transfer " << path << endl;
+    // }
+
     return "";
-} */
+}
+
 
 
 

@@ -514,17 +514,11 @@ void Server::defineLocationPath(Location &location, string path, string &Locatio
 }
 
 bool Server::HandleErrors(int client, string protocol, Stream& stream) {
-    if(!transfer){
-        stream.loadFile(getPageDefault("500"));
-        _statusCode = " 500 Internal Server Error";
-        return(true);
-    }
     struct ErrorCheck {
         bool condition;
         const char* page;
         const char* message;
     };
-
     ErrorCheck errors[] = {
         {protocol != "HTTP/1.1", "400", " 400 Bad Request"},
         {master.isMethod() == INVALID_REQUEST, "405", " 405 Method Not Allowed"},

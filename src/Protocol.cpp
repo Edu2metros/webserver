@@ -7,7 +7,7 @@ Protocol::Protocol(char *data) : method("GET"), path("/"), type("HTTP/1.1"), con
 }
 
 void    Protocol::reset(void) {
-    method = "GET";
+    method = "POST";
     path = "";
     type = "";
     connection = "";
@@ -29,28 +29,35 @@ string inside(string text, string sub, string stop) {
 }
 
 
-void Protocol::extract(const char *data) {
+void    Protocol::extract(const char *data){
     istringstream parse(data);
-    size_t pos;
-
-    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-        header = pos + 4;
-        contentBody = parse.str().substr(pos + 4); 
-    }
-
-    if ((pos = parse.str().find("Host: ")) != string::npos)
+    size_t  pos;
+    if((pos = parse.str().find("Host: ")) != string::npos)
         tmpHost = parse.str().substr(pos + 6, parse.str().find("\n", pos) - pos - 6);
-
-    if ((pos = tmpHost.find(":")) != string::npos)
+    pos = tmpHost.find(":");
+   if(pos != string::npos)
         tmpHost = tmpHost.substr(0, pos);
-        
+
     parse >> method >> path >> type;
-    connection = inside(parse.str(), "Connection: ", "\n");
-    boundary = inside(parse.str(), "boundary=", "\r\n");
-    file = inside(parse.str(), "filename=\"", "\"");
+    if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
+            header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
+            // contentBody = parse.str().substr(header);
+
+        /*         if ((pos = contentBody.find("\r\n\r\n")) != string::npos) {
+                    header += pos + 4;
+                    contentBody = input.substr(header);
+                } */
+        }
+
+    // if(connection == "")
+        connection = inside(parse.str(), "Connection: ", "\n");
+    // if(boundary == "")
+        boundary = inside(parse.str(), "boundary=", "\r\n");
+    // if(file == "")
+        file = inside(parse.str(), "filename=\"","\"");
+    // if(length == 0)
+        length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
 }
-
-
 
 
 void    Protocol::setMethod(string value) {
@@ -104,18 +111,3 @@ size_t  Protocol::getHeaderLen(void) {
 }
 
 Protocol::~Protocol(){}
-
-ostream &operator<<(ostream &os, const Protocol &protocol) {
-    os << "Protocol details:" << endl;
-    os << "  Method:       " << protocol.method << endl;
-    os << "  Path:         " << protocol.path << endl;
-    os << "  Type:         " << protocol.type << endl;
-    os << "  Connection:   " << protocol.connection << endl;
-    os << "  Boundary:     " << protocol.boundary << endl;
-    os << "  TmpHost:      " << protocol.tmpHost << endl;
-    os << "  File:         " << protocol.file << endl;
-    os << "  Length:       " << protocol.length << endl;
-    os << "  Header:       " << protocol.header << endl;
-    os << "  ContentBody:  " << protocol.contentBody << endl;
-    return os;
-}
