@@ -60,6 +60,7 @@
     "fstream": "cpp",
     "filesystem": "cpp",
     "iosfwd": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "*.tcc": "cpp"
   }
 }

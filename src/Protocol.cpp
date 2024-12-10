@@ -41,12 +41,12 @@ void    Protocol::extract(const char *data){
     parse >> method >> path >> type;
     if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
             header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
-            // contentBody = parse.str().substr(header);
+            contentBody = parse.str().substr(header);
 
-        /*         if ((pos = contentBody.find("\r\n\r\n")) != string::npos) {
-                    header += pos + 4;
-                    contentBody = input.substr(header);
-                } */
+                // if ((pos = contentBody.find("\r\n\r\n")) != string::npos) {
+                    // header += pos + 4;
+                    // contentBody = parse.str().substr(header);
+                // }
         }
 
     // if(connection == "")

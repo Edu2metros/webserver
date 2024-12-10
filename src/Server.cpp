@@ -60,6 +60,10 @@ string Server::createPacket(int client) {
                             if (master.getFileName() != "") {
                                 out.open(path.c_str(), ios::out | ios::binary);
                             }
+                            if(piece == 192){
+                                cout << "ó entrou aqui ó\n" << buffer << endl;
+                                continue;
+                            }
                             if (!out.is_open())
                                 continue;
                             offset = (size_t)master.getHeaderLen();
@@ -77,7 +81,9 @@ string Server::createPacket(int client) {
                         if (sub) {
                             dataLen -= master.getBoundary().length() + 8;
                         }
-                        cout << "Imprimido: " << string(buffer + offset, dataLen) << endl;
+                        cout << "DataLen: " << dataLen << " piece: " << piece << " offset: " << offset;
+                        cout << " writtenByte: " << writtenByte << " remainingLen: " << remainingLen;
+                        cout << " master.getBoundary(): " << master.getBoundary().length() + 8 << endl;
                         out.write(buffer + offset, dataLen);
                         writtenByte += dataLen;
 
