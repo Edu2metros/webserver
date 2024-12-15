@@ -11,123 +11,153 @@
 
 using namespace std;
 
+void Server::setError(const string& error, const string& msg, bool& readyToWrite){
+    cerr << msg << endl;
+    master.setMethod(error);
+    readyToWrite = true;
+}
+
+void Server::checkServerName(Protocol &master){
+    string client_host = master.getHost();
+    string server_host = host;
+
+    if(client_host != "localhost" && server_host != "" && client_host != server_host){
+        master.setMethod("INVALID_HOST");
+    }
+}
+
 string Server::createPacket(int client) {
-    fd_set          read_fd;
-    struct timeval  timeout;
-    bool            packetCreated = false;
-    bool            creating = true;
-    char            buffer[65535];
-    size_t          currentSize = 0;
-    size_t          writtenByte = 0;
-    size_t          dataLen;
-    size_t          offset = 0;
-    int             piece;
-    string          path("");
-    ofstream        out;
-    vector<char>    tmpHeader;
+    fd_set read_fd, write_fd;
+    struct timeval timeout;
+    bool packetCreated = false;
+    bool creating = true;
+    bool readyToWrite = false;
+    bool receivingPost = false;
+    char buffer[65535];
+    size_t currentSize = 0;
+    size_t writtenByte = 0;
+    size_t dataLen;
+    size_t offset = 0;
+    int piece;
+    string path("");
+    ofstream out;
+    vector<char> tmpHeader;
     master.reset();
 
     while (creating) {
         FD_ZERO(&read_fd);
-        FD_SET(client, &read_fd);
+        FD_ZERO(&write_fd);
 
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 100000;
-
-        int receiving = select(client + 1, &read_fd, NULL, NULL, &timeout);
-        if (receiving < 0) {
-            creating = false;
-            cout << "Error on select\n";
-        } else if (receiving == 0) {
-            break;
+        if (!readyToWrite) {
+            FD_SET(client, &read_fd);
         } else {
-            if (FD_ISSET(client, &read_fd)) {
-                bzero(buffer, sizeof(buffer));
-                piece = recv(client, buffer, sizeof(buffer), 0);
-                cout << "Tamanho Pedaço: " << piece << endl;
+            FD_SET(client, &write_fd);
+        }
 
-                if (piece > 0) {
-                    currentSize += piece;
+        if(receivingPost == true){
+            timeout.tv_sec = 0;
+            timeout.tv_usec = max(static_cast<int>(master.getFileLen() / 1000), 5000);
+        }
+        else if(readyToWrite == true){
+            timeout.tv_sec = 0;
+            timeout.tv_usec = 0;
+        }
+        else{
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
+        }
 
-                    if (!packetCreated) {
-                        if (master.extract(buffer) == false) {
-                            tmpHeader.insert(tmpHeader.end(), buffer, buffer + piece);
-                            if (master.extract(&tmpHeader[0]) == false) {
-                                continue;
-                            } else {
-                                memcpy(buffer, &tmpHeader[0], tmpHeader.size());
-                                tmpHeader.clear();
-                                packetCreated = true;
-                            }
+        int ready = select(client + 1, &read_fd, &write_fd, NULL, &timeout);
+        cout << "Select returned " << ready << endl;
+        if (ready < 0) {
+            setError("INTERNAL_SERVER_ERROR", "Error during select", readyToWrite);
+        } else if (ready == 0) {
+            readyToWrite = true;
+            FD_SET(client, &write_fd);
+        }
+
+        if (!readyToWrite && FD_ISSET(client, &read_fd)) {
+            cout << "entrou\n";
+            memset(buffer, 0, sizeof(buffer));
+            piece = recv(client, buffer, sizeof(buffer), 0);
+            cout << "Piece : " << piece << endl;
+            if (piece > 0) {
+                currentSize += piece;
+
+                if (!packetCreated) {
+                    if (!master.extract(buffer)) {
+                        tmpHeader.insert(tmpHeader.end(), buffer, buffer + piece);
+                        if (!master.extract(&tmpHeader[0])) {
+                            continue;
                         } else {
+                            memcpy(buffer, &tmpHeader[0], tmpHeader.size());
+                            tmpHeader.clear();
                             packetCreated = true;
                         }
-                        if (master.getFileLen() && master.getFileLen() <= maxBodySize && master.getFileName() != "") {
-                            path = "upload/" + master.getFileName();
-
-                            if (master.getFileName() != "") {
-                                out.open(path.c_str(), ios::out | ios::binary);
-                            }
-                            if (!out.is_open())
-                                continue;
-                            offset = (size_t)master.getHeaderLen();
-                        }
+                    } else {
+                        packetCreated = true;
                     }
+                    if (master.getFileLen() && master.getFileLen() <= maxBodySize && !master.getFileName().empty()) {
+                        path = "upload/" + master.getFileName();
 
-                    dataLen = piece - offset;
-                    size_t remainingLen = size_t(master.getFileLen()) - writtenByte;
-
-                    if (remainingLen <= dataLen)
-                        dataLen = remainingLen;
-
-                    if (dataLen > 0) {
-                        char *sub = strstr(buffer + offset, master.getBoundary().c_str());
-                        if (sub) {
-                            dataLen -= master.getBoundary().length() + 8;
+                        if (!master.getFileName().empty()) {
+                            out.open(path.c_str(), ios::out | ios::binary);
+                            receivingPost = true;
                         }
-                        cout << "DataLen: " << dataLen << " piece: " << piece << " offset: " << offset;
-                        cout << " writtenByte: " << writtenByte << " remainingLen: " << remainingLen;
-                        cout << " master.getBoundary(): " << master.getBoundary().length() + 8 << endl;
-                        out.write(buffer + offset, dataLen);
-                        writtenByte += dataLen;
-
-                        if (writtenByte > maxBodySize) {
-                            break;
+                        if (!out.is_open()) {
+                            cerr << "Failed to open file: " << path << endl;
+                            continue;
                         }
-
-                        if (master.isMethod() == POST)
-                            cout << "uploaded " << writtenByte << " of " << master.getFileLen() << endl;
+                        offset = static_cast<size_t>(master.getHeaderLen());
                     }
-
-                    if (writtenByte >= master.getFileLen()) {
-                        cout << "transfer done\n";
-                        break;
-                    }
-                    offset = 0;
-                } else if (piece == 0 || writtenByte >= master.getFileLen()) {
-                    cout << "Received entire file\n";
-                    creating = true;
-                    break;
-                } else {
-                    cout << "*uploaded " << writtenByte << " of " << master.getFileLen() << endl;
-                    break;
                 }
+
+                dataLen = piece - offset;
+                size_t remainingLen = static_cast<size_t>(master.getFileLen()) - writtenByte;
+
+                if (remainingLen <= dataLen) {
+                    dataLen = remainingLen;
+                }
+
+                if (dataLen > 0) {
+                    char *sub = strstr(buffer + offset, master.getBoundary().c_str());
+                    if (sub) {
+                        dataLen -= master.getBoundary().length() + 8;
+                    }
+                    out.write(buffer + offset, dataLen);
+                    writtenByte += dataLen;
+
+                    if (writtenByte > maxBodySize) // check if max body size is exceeded
+                        setError("ENTITY_TOO_LARGE", "Entity too large", readyToWrite);
+
+                    cout << "Uploaded " << writtenByte << " of " << master.getFileLen() << endl;
+                }
+
+                if (writtenByte >= master.getFileLen()) {
+                    cout << "File transfer complete.\n";
+                    readyToWrite = true;
+                }
+                offset = 0;
+            } else if (piece == 0 || writtenByte >= master.getFileLen()) {
+                cout << "Received entire file.\n";
+                readyToWrite = true;
+            } else {
+                setError("INTERNAL_SERVER_ERROR", "Error during recv", readyToWrite);
             }
         }
+
+        if (readyToWrite && FD_ISSET(client, &write_fd)) {
+            out.close();
+            if(master.isMethod() == ENTITY_TOO_LARGE){
+                remove(path.c_str());
+                usleep(master.getFileLen() / 1000);
+            }
+            response(client, master.getPath(), master.getType());
+            break;
+        }
     }
-
-    out.close();
-    // if (!transfer) {
-    //     remove(path.c_str());
-    //     cout << "could not transfer " << path << endl;
-    // }
-
     return "";
 }
-
-
-
-
 
 void Server::loadError(int client, string filePath, const string& errorCode)
 {
@@ -231,6 +261,8 @@ void Server::contentMaker(int client, string protocol, string connection, string
 }
 
 void Server::response(int client, string path, string protocol){
+
+    cout << "Recebido: " << "Client: " << client << " Path: " << path << " Protocol: " << protocol << endl;
     static string LocationRoot;
     struct stat info;
     size_t pos = path.rfind(".");

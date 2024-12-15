@@ -54,7 +54,7 @@ bool    Protocol::extract(const char *data){
         file = inside(parse.str(), "filename=\"","\"");
     if(length == 0)
         length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
-
+    cout << "Method: " << method << " Path: " << path << " Type: " << type << endl;
     if(boundary == "" || file == "" || length == 0)
         return false;
     return true;
