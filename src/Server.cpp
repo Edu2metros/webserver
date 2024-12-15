@@ -26,6 +26,8 @@ void Server::checkServerName(Protocol &master){
     }
 }
 
+// fazer a lógica da pasta que não existe, mas primeiro focar no timeout.
+
 string Server::createPacket(int client) {
     fd_set read_fd, write_fd;
     struct timeval timeout;
@@ -33,6 +35,7 @@ string Server::createPacket(int client) {
     bool creating = true;
     bool readyToWrite = false;
     bool receivingPost = false;
+    bool createFile = false;
     char buffer[65535];
     size_t currentSize = 0;
     size_t writtenByte = 0;
@@ -54,18 +57,14 @@ string Server::createPacket(int client) {
             FD_SET(client, &write_fd);
         }
 
-        if(receivingPost == true){
+      if (!packetCreated || maxBodySize < master.getFileLen()) {
+			timeout.tv_sec = 10;
+			timeout.tv_usec = 0;
+		}
+		else {
             timeout.tv_sec = 0;
-            timeout.tv_usec = max(static_cast<int>(master.getFileLen() / 1000), 5000);
-        }
-        else if(readyToWrite == true){
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 0;
-        }
-        else{
-            timeout.tv_sec = 1;
-            timeout.tv_usec = 0;
-        }
+			timeout.tv_usec = master.getFileLen() / 1000;
+		}
 
         int ready = select(client + 1, &read_fd, &write_fd, NULL, &timeout);
         cout << "Select returned " << ready << endl;
@@ -83,8 +82,8 @@ string Server::createPacket(int client) {
             cout << "Piece : " << piece << endl;
             if (piece > 0) {
                 currentSize += piece;
-
-                if (!packetCreated) {
+                if (!createFile) {
+                    packetCreated = true;
                     if (!master.extract(buffer)) {
                         tmpHeader.insert(tmpHeader.end(), buffer, buffer + piece);
                         if (!master.extract(&tmpHeader[0])) {
@@ -92,12 +91,16 @@ string Server::createPacket(int client) {
                         } else {
                             memcpy(buffer, &tmpHeader[0], tmpHeader.size());
                             tmpHeader.clear();
-                            packetCreated = true;
+                            createFile = true;
                         }
                     } else {
-                        packetCreated = true;
+                        createFile = true;
                     }
                     if (master.getFileLen() && master.getFileLen() <= maxBodySize && !master.getFileName().empty()) {
+                        if(access("upload", F_OK | W_OK) == -1){
+                            setError("INTERNAL_SERVER_ERROR", "Error during access", readyToWrite);
+                            continue;
+                        }
                         path = "upload/" + master.getFileName();
 
                         if (!master.getFileName().empty()) {
