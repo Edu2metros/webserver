@@ -34,7 +34,7 @@ public:
     Protocol(void);
     Protocol(char *);
     void        reset(void);
-    void        extract(const char *);
+    bool        extract(const char *);
     method_e    isMethod(void);
     void        setMethod(string);
     string      getPath(void);

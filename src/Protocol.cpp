@@ -7,7 +7,7 @@ Protocol::Protocol(char *data) : method("GET"), path("/"), type("HTTP/1.1"), con
 }
 
 void    Protocol::reset(void) {
-    method = "POST";
+    method = "GET";
     path = "";
     type = "";
     connection = "";
@@ -29,7 +29,7 @@ string inside(string text, string sub, string stop) {
 }
 
 
-void    Protocol::extract(const char *data){
+bool    Protocol::extract(const char *data){
     istringstream parse(data);
     size_t  pos;
     if((pos = parse.str().find("Host: ")) != string::npos)
@@ -40,23 +40,24 @@ void    Protocol::extract(const char *data){
 
     parse >> method >> path >> type;
     if ((pos = parse.str().find("\r\n\r\n")) != string::npos) {
-            header = parse.str().substr(pos + 4).find("\r\n\r\n") + pos + 8;
-            contentBody = parse.str().substr(header);
-
-                // if ((pos = contentBody.find("\r\n\r\n")) != string::npos) {
-                    // header += pos + 4;
-                    // contentBody = parse.str().substr(header);
-                // }
+        size_t next_pos = parse.str().find("\r\n\r\n", pos + 4);
+        if (next_pos != string::npos) {
+            header = next_pos + 4;
+        } else {
+            header = pos + 4;
         }
-
-    // if(connection == "")
-        connection = inside(parse.str(), "Connection: ", "\n");
-    // if(boundary == "")
+    }
+    connection = inside(parse.str(), "Connection: ", "\n");
+    if(boundary == "")
         boundary = inside(parse.str(), "boundary=", "\r\n");
-    // if(file == "")
+    if(file == "")
         file = inside(parse.str(), "filename=\"","\"");
-    // if(length == 0)
+    if(length == 0)
         length = atoll(inside(parse.str(), "Content-Length: ", "\n").c_str());
+
+    if(boundary == "" || file == "" || length == 0)
+        return false;
+    return true;
 }
 
 

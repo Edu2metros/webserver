@@ -24,7 +24,7 @@ string Server::createPacket(int client) {
     int             piece;
     string          path("");
     ofstream        out;
-
+    vector<char>    tmpHeader;
     master.reset();
 
     while (creating) {
@@ -42,6 +42,7 @@ string Server::createPacket(int client) {
             break;
         } else {
             if (FD_ISSET(client, &read_fd)) {
+                bzero(buffer, sizeof(buffer));
                 piece = recv(client, buffer, sizeof(buffer), 0);
                 cout << "Tamanho Pedaço: " << piece << endl;
 
@@ -49,11 +50,18 @@ string Server::createPacket(int client) {
                     currentSize += piece;
 
                     if (!packetCreated) {
-                        master.extract(buffer);
-
-                        if (master.getFileName() != "")
+                        if (master.extract(buffer) == false) {
+                            tmpHeader.insert(tmpHeader.end(), buffer, buffer + piece);
+                            if (master.extract(&tmpHeader[0]) == false) {
+                                continue;
+                            } else {
+                                memcpy(buffer, &tmpHeader[0], tmpHeader.size());
+                                tmpHeader.clear();
+                                packetCreated = true;
+                            }
+                        } else {
                             packetCreated = true;
-
+                        }
                         if (master.getFileLen() && master.getFileLen() <= maxBodySize && master.getFileName() != "") {
                             path = "upload/" + master.getFileName();
 
